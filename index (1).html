@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#25d366" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="WA Direct" />
+  <meta name="application-name" content="WA Direct" />
+  <meta name="description" content="Open WhatsApp chat without saving contacts" />
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Apple Touch Icon -->
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <title>WA Direct</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #07111f;
+      --surface: #0d1f35;
+      --border: #1a3350;
+      --green: #25d366;
+      --green-dark: #128c7e;
+      --green-glow: rgba(37,211,102,0.18);
+      --text: #e8f4f0;
+      --muted: #5a8070;
+      --accent: #00ffa3;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      padding: 20px;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 10%, rgba(37,211,102,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 40% at 80% 80%, rgba(18,140,126,0.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 400px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 36px 28px 32px;
+      box-shadow:
+        0 0 0 1px rgba(37,211,102,0.04),
+        0 30px 80px rgba(0,0,0,0.6),
+        0 0 60px rgba(37,211,102,0.04);
+      animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .wa-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--green);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--green-glow);
+      flex-shrink: 0;
+    }
+
+    .wa-icon svg { width: 24px; height: 24px; fill: #fff; }
+
+    .logo-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1;
+    }
+
+    .logo-text span:first-child {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text span:last-child {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 400;
+      margin-top: 2px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* Install banner */
+    .install-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(37,211,102,0.08);
+      border: 1px solid rgba(37,211,102,0.25);
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .install-banner.show { display: flex; }
+    .install-banner:hover { background: rgba(37,211,102,0.14); }
+    .install-banner span { font-size: 12px; color: var(--green); flex: 1; font-weight: 700; }
+    .install-banner button {
+      background: var(--green);
+      color: #07111f;
+      border: none;
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: stretch;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 16px;
+    }
+
+    .input-row:focus-within {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px var(--green-glow);
+    }
+
+    .country-select {
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 14px 4px 14px 14px;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      min-width: 52px;
+    }
+
+    .country-select option { background: #0d1f35; color: var(--text); }
+
+    .divider {
+      width: 1px;
+      background: var(--border);
+      margin: 10px 0;
+      flex-shrink: 0;
+    }
+
+    .phone-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 20px;
+      font-weight: 500;
+      padding: 14px;
+      outline: none;
+      letter-spacing: 1px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .phone-input::placeholder { color: var(--muted); font-size: 16px; letter-spacing: 0; }
+    .phone-input::-webkit-outer-spin-button,
+    .phone-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    .clear-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 0 14px;
+      cursor: pointer;
+      font-size: 18px;
+      display: none;
+      align-items: center;
+      transition: color 0.2s;
+    }
+    .clear-btn:hover { color: var(--text); }
+    .clear-btn.visible { display: flex; }
+
+    .send-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--green);
+      color: #07111f;
+      border: none;
+      border-radius: 14px;
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+      box-shadow: 0 4px 24px rgba(37,211,102,0.25);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .send-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(37,211,102,0.35); }
+    .send-btn:active { transform: scale(0.97); background: var(--green-dark); }
+    .send-btn svg { width: 20px; height: 20px; fill: currentColor; flex-shrink: 0; }
+
+    .history-section { margin-top: 24px; }
+
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .clear-history {
+      font-size: 10px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      text-decoration: underline;
+      padding: 0;
+    }
+    .clear-history:hover { color: #e05252; }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .history-list::-webkit-scrollbar { width: 3px; }
+    .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .history-item:hover, .history-item:active {
+      border-color: var(--green);
+      background: rgba(37,211,102,0.05);
+    }
+
+    .history-item .num { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--text); flex: 1; }
+    .history-item .open-icon { color: var(--green); font-size: 14px; opacity: 0.7; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 12px 0;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--green);
+      color: #07111f;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 20px;
+      border-radius: 100px;
+      transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+      pointer-events: none;
+      z-index: 100;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(37,211,102,0.5); }
+      70% { box-shadow: 0 0 0 14px rgba(37,211,102,0); }
+      100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
+    }
+    .send-btn.pulsing { animation: pulse 0.5s ease-out; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo-row">
+    <div class="wa-icon">
+      <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    </div>
+    <div class="logo-text">
+      <span>WA Direct</span>
+      <span>No save, direct message</span>
+    </div>
+  </div>
+
+  <!-- PWA Install Prompt -->
+  <div class="install-banner" id="installBanner">
+    <span>📲 Add to Home Screen as App</span>
+    <button id="installBtn">Install</button>
+  </div>
+
+  <div class="label">Mobile Number</div>
+
+  <div class="input-row">
+    <select class="country-select" id="countryCode" aria-label="Country code">
+      <option value="91">+91</option>
+      <option value="1">+1</option>
+      <option value="44">+44</option>
+      <option value="61">+61</option>
+      <option value="971">+971</option>
+      <option value="65">+65</option>
+      <option value="60">+60</option>
+      <option value="92">+92</option>
+      <option value="880">+880</option>
+      <option value="94">+94</option>
+      <option value="977">+977</option>
+      <option value="234">+234</option>
+      <option value="27">+27</option>
+      <option value="49">+49</option>
+      <option value="33">+33</option>
+      <option value="81">+81</option>
+      <option value="86">+86</option>
+      <option value="55">+55</option>
+      <option value="52">+52</option>
+    </select>
+    <div class="divider"></div>
+    <input
+      class="phone-input"
+      id="phoneInput"
+      type="tel"
+      inputmode="numeric"
+      pattern="[0-9]*"
+      placeholder="Enter number"
+      autocomplete="off"
+      maxlength="15"
+    />
+    <button class="clear-btn" id="clearBtn" aria-label="Clear">✕</button>
+  </div>
+
+  <button class="send-btn" id="sendBtn">
+    <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    Open in WhatsApp
+  </button>
+
+  <div class="history-section" id="historySection" style="display:none">
+    <div class="history-header">
+      <div class="label" style="margin-bottom:0">Recent</div>
+      <button class="clear-history" id="clearHistoryBtn">Clear all</button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <div class="history-section" id="emptyHistory">
+    <div class="label" style="margin-bottom:6px">Recent</div>
+    <div class="empty-state">Numbers you open will appear here</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── PWA Install Prompt ──────────────────────────────────────
+  let deferredPrompt = null;
+  const installBanner = document.getElementById('installBanner');
+  const installBtn = document.getElementById('installBtn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBanner.classList.add('show');
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      installBanner.classList.remove('show');
+      showToast('App installed! 🎉');
+    }
+    deferredPrompt = null;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installBanner.classList.remove('show');
+    deferredPrompt = null;
+  });
+
+  // ── Service Worker Registration ─────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/wa-direct/sw.js')
+      .catch(() => navigator.serviceWorker.register('./sw.js'))
+      .catch(err => console.log('SW registration skipped:', err));
+  }
+
+  // ── Core App Logic ──────────────────────────────────────────
+  const phoneInput = document.getElementById('phoneInput');
+  const countryCode = document.getElementById('countryCode');
+  const sendBtn = document.getElementById('sendBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const historySection = document.getElementById('historySection');
+  const emptyHistory = document.getElementById('emptyHistory');
+  const historyList = document.getElementById('historyList');
+  const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+  const toast = document.getElementById('toast');
+
+  const MAX_HISTORY = 8;
+  const STORAGE_KEY = 'wa_direct_history';
+
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+
+  function saveHistory(h) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(h)); } catch {}
+  }
+
+  function addToHistory(fullNum) {
+    let h = getHistory().filter(x => x !== fullNum);
+    h.unshift(fullNum);
+    if (h.length > MAX_HISTORY) h = h.slice(0, MAX_HISTORY);
+    saveHistory(h);
+    renderHistory();
+  }
+
+  function formatDisplay(fullNum) {
+    const code = fullNum.startsWith('91') && fullNum.length === 12 ? '91' :
+                 fullNum.startsWith('1')  && fullNum.length === 11 ? '1'  : '';
+    if (code) {
+      const local = fullNum.slice(code.length);
+      return `+${code} ${local.slice(0,5)} ${local.slice(5)}`.trim();
+    }
+    return '+' + fullNum;
+  }
+
+  function renderHistory() {
+    const h = getHistory();
+    if (h.length === 0) {
+      historySection.style.display = 'none';
+      emptyHistory.style.display = 'block';
+    } else {
+      historySection.style.display = 'block';
+      emptyHistory.style.display = 'none';
+      historyList.innerHTML = '';
+      h.forEach(num => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `<span class="num">${formatDisplay(num)}</span><span class="open-icon">↗</span>`;
+        item.addEventListener('click', () => openWhatsApp(num));
+        historyList.appendChild(item);
+      });
+    }
+  }
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  function openWhatsApp(fullNum) {
+    if (!fullNum || fullNum.length < 7) { showToast('Please enter a valid number!'); return; }
+    addToHistory(fullNum);
+    window.open(`https://wa.me/${fullNum}`, '_blank');
+    sendBtn.classList.add('pulsing');
+    setTimeout(() => sendBtn.classList.remove('pulsing'), 600);
+  }
+
+  function handleSend() {
+    const raw = phoneInput.value.replace(/\D/g, '');
+    if (!raw) { showToast('Enter a phone number first!'); phoneInput.focus(); return; }
+    const code = countryCode.value;
+    const fullNum = raw.startsWith(code) ? raw : code + raw;
+    openWhatsApp(fullNum);
+  }
+
+  phoneInput.addEventListener('input', () => {
+    phoneInput.value = phoneInput.value.replace(/\D/g, '');
+    clearBtn.classList.toggle('visible', phoneInput.value.length > 0);
+  });
+
+  clearBtn.addEventListener('click', () => {
+    phoneInput.value = '';
+    clearBtn.classList.remove('visible');
+    phoneInput.focus();
+  });
+
+  phoneInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleSend(); });
+  sendBtn.addEventListener('click', handleSend);
+  clearHistoryBtn.addEventListener('click', () => { saveHistory([]); renderHistory(); });
+
+  renderHistory();
+  phoneInput.focus();
+</script>
+</body>
+</html>
